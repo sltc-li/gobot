@@ -1,0 +1,21 @@
+{
+  "actions": [
+    {
+      "name": "distribute alpha",
+      "command": "sh build-example.sh",
+      "params": [
+        "branch",
+        "version"
+      ],
+      "log": "/tmp/log",
+      "error_channel": "GXXXXXXXX",
+      "channels": [
+        "<direct message>",
+        "#gobot-test"
+      ],
+      "users": [
+        "@li-go"
+      ]
+    }
+  ]
+}
