@@ -2,7 +2,7 @@ package handlers
 
 import "github.com/li-go/gobot/gobot"
 
-var HelpHandler = gobot.Handler{
+var helpHandler = gobot.Handler{
 	Name: "help",
 	Help: "help? - print help information",
 	Handleable: func(bot gobot.Bot, msg gobot.Message) bool {

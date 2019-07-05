@@ -18,6 +18,7 @@ var (
 	mutex      sync.RWMutex
 
 	ErrTooManyTasks = errors.New("too many tasks")
+	ErrTaskNotFound = errors.New("task not found")
 )
 
 func GetTasks() []Task {
@@ -28,6 +29,17 @@ func GetTasks() []Task {
 		tt = append(tt, *t)
 	}
 	return tt
+}
+
+func FindTask(id int) (*Task, error) {
+	mutex.RLock()
+	defer mutex.RUnlock()
+	for _, t := range tasks {
+		if t.ID == id {
+			return t, nil
+		}
+	}
+	return nil, ErrTaskNotFound
 }
 
 func addTask(bot gobot.Bot, msg gobot.Message, cmd Command) error {
@@ -58,7 +70,7 @@ func removeTask() *Task {
 
 	for i, task := range tasks {
 		status := task.Status()
-		if status == Canceled || status == Succeeded || status == Failed {
+		if status == Killed || status == Succeeded || status == Failed {
 			var newTasks []*Task
 			newTasks = append(newTasks, tasks[:i]...)
 			newTasks = append(newTasks, tasks[i+1:]...)
@@ -76,7 +88,7 @@ func nextExecutableTask() *Task {
 	var pendingTasks []*Task
 	for _, t := range tasks {
 		status := t.Status()
-		if status == Started {
+		if status == Running {
 			runningTasks = append(runningTasks, t)
 		} else if status == Pending {
 			pendingTasks = append(pendingTasks, t)

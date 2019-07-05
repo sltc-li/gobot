@@ -13,14 +13,14 @@ type TaskStatus int
 
 const (
 	Pending TaskStatus = iota
-	Canceled
-	Started
+	Killed
+	Running
 	Succeeded
 	Failed
 )
 
 var (
-	ErrNoCancelPermission = errors.New("no cancel permission")
+	ErrNoKillPermission = errors.New("no kill permission")
 )
 
 type Task struct {
@@ -31,7 +31,7 @@ type Task struct {
 	cmd Command
 
 	runAt    time.Time
-	cancelAt *time.Time
+	killAt   *time.Time
 	startAt  *time.Time
 	finishAt *time.Time
 
@@ -47,8 +47,11 @@ func (t *Task) Status() TaskStatus {
 		}
 		return Failed
 	}
+	if t.killAt != nil {
+		return Killed
+	}
 	if t.startAt != nil {
-		return Started
+		return Running
 	}
 	return Pending
 }
@@ -59,21 +62,25 @@ func (t *Task) Start() {
 
 	err := t.execute()
 
+	if t.Status() == Killed {
+		return
+	}
+
 	now2 := time.Now()
 	t.finishAt = &now2
 	t.err = err
 }
 
-func (t *Task) Cancel(userID string) error {
+func (t *Task) Kill(userID string) error {
 	if userID != t.Msg.UserID {
-		return ErrNoCancelPermission
+		return ErrNoKillPermission
 	}
 
-	if t.Status() == Started && t.executor != nil {
+	if t.Status() == Running && t.executor != nil {
 		t.err = t.executor.Stop()
 	}
 	now := time.Now()
-	t.cancelAt = &now
+	t.killAt = &now
 	return nil
 }
 
@@ -81,12 +88,12 @@ func (t *Task) Duration() time.Duration {
 	switch t.Status() {
 	case Pending:
 		return 0
-	case Canceled:
+	case Killed:
 		if t.startAt != nil {
-			return time.Since(*t.startAt)
+			return t.killAt.Sub(*t.startAt)
 		}
 		return 0
-	case Started:
+	case Running:
 		return time.Since(*t.startAt)
 	case Succeeded, Failed:
 		return t.finishAt.Sub(*t.startAt)

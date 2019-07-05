@@ -46,7 +46,7 @@ func main() {
 	}
 
 	// register defined handlers
-	for _, h := range []gobot.Handler{handlers.HelpHandler, handlers.LookupHandler, handlers.ListHandler} {
+	for _, h := range handlers.All {
 		if err := bot.RegisterHandler(h); err != nil {
 			usage(err)
 		}

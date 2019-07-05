@@ -9,15 +9,15 @@ func _() {
 	// Re-run the stringer command to generate them again.
 	var x [1]struct{}
 	_ = x[Pending-0]
-	_ = x[Canceled-1]
-	_ = x[Started-2]
+	_ = x[Killed-1]
+	_ = x[Running-2]
 	_ = x[Succeeded-3]
 	_ = x[Failed-4]
 }
 
-const _TaskStatus_name = "PendingCanceledStartedSucceededFailed"
+const _TaskStatus_name = "PendingKilledRunningSucceededFailed"
 
-var _TaskStatus_index = [...]uint8{0, 7, 15, 22, 31, 37}
+var _TaskStatus_index = [...]uint8{0, 7, 13, 20, 29, 35}
 
 func (i TaskStatus) String() string {
 	if i < 0 || i >= TaskStatus(len(_TaskStatus_index)-1) {

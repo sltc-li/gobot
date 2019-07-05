@@ -8,7 +8,7 @@ import (
 	"github.com/li-go/gobot/gobot"
 )
 
-var ListHandler = gobot.Handler{
+var psHandler = gobot.Handler{
 	Name:         "ps",
 	Help:         "ps - list running/finished commands",
 	NeedsMention: true,

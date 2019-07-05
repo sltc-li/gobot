@@ -24,7 +24,7 @@ type Executor struct {
 	slackMsgCh <-chan string
 	errMsgCh   <-chan string
 
-	closed bool
+	stopped bool
 }
 
 func NewExecutor(action Command, params []param) (*Executor, error) {
@@ -72,7 +72,7 @@ func NewExecutor(action Command, params []param) (*Executor, error) {
 }
 
 func (e *Executor) Close() error {
-	e.closed = true
+	e.stopped = true
 	return e.file.Close()
 }
 
@@ -102,7 +102,7 @@ func (e *Executor) initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan str
 
 		scanner := bufio.NewScanner(r)
 		var texts []string
-		for !e.closed && scanner.Scan() {
+		for !e.stopped && scanner.Scan() {
 			text := scanner.Text()
 			logger.Print(text)
 
@@ -112,7 +112,7 @@ func (e *Executor) initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan str
 			}
 			if text == "post_slack_end" {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-				send(ctx, ch, strings.Join(texts, "\n"))
+				e.send(ctx, ch, strings.Join(texts, "\n"))
 				cancel()
 				texts = nil
 				continue
@@ -140,7 +140,7 @@ func (e *Executor) initStderrPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan str
 		}()
 
 		p := make([]byte, 10240)
-		for !e.closed {
+		for !e.stopped {
 			n, err := r.Read(p)
 			if err == io.EOF {
 				break
@@ -149,7 +149,7 @@ func (e *Executor) initStderrPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan str
 			logger.Print(text)
 
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)
-			send(ctx, ch, text)
+			e.send(ctx, ch, text)
 			cancel()
 		}
 	}(stderr, ch)
@@ -157,7 +157,11 @@ func (e *Executor) initStderrPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan str
 	return ch, nil
 }
 
-func send(ctx context.Context, ch chan<- string, msg string) {
+func (e *Executor) send(ctx context.Context, ch chan<- string, msg string) {
+	if e.stopped {
+		return
+	}
+
 	select {
 	case <-ctx.Done():
 		return
@@ -185,9 +189,14 @@ func (e *Executor) Start() error {
 }
 
 func (e *Executor) Wait() error {
-	return e.cmd.Wait()
+	err := e.cmd.Wait()
+	if e.stopped {
+		return nil
+	}
+	return err
 }
 
 func (e *Executor) Stop() error {
+	e.stopped = true
 	return e.cmd.Process.Kill()
 }

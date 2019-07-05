@@ -6,6 +6,8 @@ import (
 	"log"
 	"strings"
 
+	"github.com/li-go/gobot/ai"
+
 	"github.com/nlopes/slack"
 )
 
@@ -82,6 +84,7 @@ func (bot *bot) Start() {
 
 			parsedMsg := bot.msgParser.Parse(msg.Text, msg.Channel, msg.User)
 
+			var handled bool
 			for _, handler := range bot.handlers {
 				if handler.NeedsMention && parsedMsg.Type == ListenTo {
 					continue
@@ -91,7 +94,12 @@ func (bot *bot) Start() {
 				}
 				go bot.handle(handler, parsedMsg)
 				// handle message only once
+				handled = true
 				break
+			}
+
+			if !handled && parsedMsg.Type != ListenTo {
+				bot.SendMessage(ai.Answer(msg.Text), msg.Channel)
 			}
 		}
 	}

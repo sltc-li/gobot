@@ -11,7 +11,7 @@ var (
 	lookupPattern = regexp.MustCompile(`^lookup: <@(\w+)>$`)
 )
 
-var LookupHandler = gobot.Handler{
+var lookupHandler = gobot.Handler{
 	Name: "lookup",
 	Help: "lookup: @someone - show information of @someone",
 	Handleable: func(bot gobot.Bot, msg gobot.Message) bool {
