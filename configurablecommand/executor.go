@@ -15,7 +15,7 @@ import (
 
 type Executor struct {
 	action Command
-	params []Param
+	params []param
 
 	cmd *exec.Cmd
 
@@ -23,9 +23,11 @@ type Executor struct {
 
 	slackMsgCh <-chan string
 	errMsgCh   <-chan string
+
+	closed bool
 }
 
-func NewExecutor(action Command, params []Param) (*Executor, error) {
+func NewExecutor(action Command, params []param) (*Executor, error) {
 	args := strings.Split(action.Command, " ")
 	for _, p := range params {
 		args = append(args, "--"+p.Name, p.Value)
@@ -41,33 +43,36 @@ func NewExecutor(action Command, params []Param) (*Executor, error) {
 		return nil, err
 	}
 
+	executor := &Executor{
+		action: action,
+		params: params,
+		cmd:    cmd,
+	}
+
 	file, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("fail to open log file: %v", err)
 	}
 	logger := log.New(file, "", log.LstdFlags)
-	slackMsgCh, err := initStdoutPipe(cmd, logger)
+	slackMsgCh, err := executor.initStdoutPipe(cmd, logger)
 	if err != nil {
 		file.Close()
 		return nil, fmt.Errorf("fail to open stdout pipe: %v", err)
 	}
-	errMsgCh, err := initStderrPipe(cmd, logger)
+	errMsgCh, err := executor.initStderrPipe(cmd, logger)
 	if err != nil {
 		file.Close()
 		return nil, fmt.Errorf("fail to open stderr pipe: %v", err)
 	}
 
-	return &Executor{
-		action:     action,
-		params:     params,
-		cmd:        cmd,
-		file:       file,
-		slackMsgCh: slackMsgCh,
-		errMsgCh:   errMsgCh,
-	}, nil
+	executor.file = file
+	executor.slackMsgCh = slackMsgCh
+	executor.errMsgCh = errMsgCh
+	return executor, nil
 }
 
 func (e *Executor) Close() error {
+	e.closed = true
 	return e.file.Close()
 }
 
@@ -82,7 +87,7 @@ func fullpath(path string) (string, error) {
 	return strings.Replace(path, "~", u.HomeDir, 1), nil
 }
 
-func initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
+func (e *Executor) initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
 	stdout, err := cmd.StdoutPipe()
 	if err != nil {
 		return nil, err
@@ -97,7 +102,7 @@ func initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
 
 		scanner := bufio.NewScanner(r)
 		var texts []string
-		for scanner.Scan() {
+		for !e.closed && scanner.Scan() {
 			text := scanner.Text()
 			logger.Print(text)
 
@@ -121,7 +126,7 @@ func initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
 	return ch, nil
 }
 
-func initStderrPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
+func (e *Executor) initStderrPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
 	stderr, err := cmd.StderrPipe()
 	if err != nil {
 		return nil, err
@@ -135,7 +140,7 @@ func initStderrPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {
 		}()
 
 		p := make([]byte, 10240)
-		for {
+		for !e.closed {
 			n, err := r.Read(p)
 			if err == io.EOF {
 				break
@@ -175,6 +180,14 @@ func (e *Executor) NextErrorMessage() (string, bool) {
 	return msg, ok
 }
 
-func (e *Executor) Exec() error {
-	return e.cmd.Run()
+func (e *Executor) Start() error {
+	return e.cmd.Start()
+}
+
+func (e *Executor) Wait() error {
+	return e.cmd.Wait()
+}
+
+func (e *Executor) Stop() error {
+	return e.cmd.Process.Kill()
 }

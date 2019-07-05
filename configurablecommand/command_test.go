@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestCommand_ParseParams(t *testing.T) {
+func TestCommand_parseParams(t *testing.T) {
 	type fields struct {
 		Name       string
 		ParamNames []string
@@ -17,7 +17,7 @@ func TestCommand_ParseParams(t *testing.T) {
 		name    string
 		fields  fields
 		args    args
-		want    []Param
+		want    []param
 		wantErr bool
 	}{
 		{
@@ -45,28 +45,28 @@ func TestCommand_ParseParams(t *testing.T) {
 			name:    "no value",
 			fields:  fields{ParamNames: []string{"aaa"}},
 			args:    args{text: "--aaa"},
-			want:    []Param{{Name: "aaa"}},
+			want:    []param{{Name: "aaa"}},
 			wantErr: false,
 		},
 		{
 			name:    "has value",
 			fields:  fields{ParamNames: []string{"aaa"}},
 			args:    args{text: "--aaa=bbb"},
-			want:    []Param{{Name: "aaa", Value: "bbb"}},
+			want:    []param{{Name: "aaa", Value: "bbb"}},
 			wantErr: false,
 		},
 		{
 			name:    "multiple params",
 			fields:  fields{ParamNames: []string{"aaa", "ccc"}},
 			args:    args{text: "--aaa=bbb --ccc=ddd"},
-			want:    []Param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd"}},
+			want:    []param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd"}},
 			wantErr: false,
 		},
 		{
 			name:    "multiple params - space separator",
 			fields:  fields{ParamNames: []string{"aaa", "ccc"}},
 			args:    args{text: "--aaa bbb --ccc ddd"},
-			want:    []Param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd"}},
+			want:    []param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd"}},
 			wantErr: false,
 		},
 	}
@@ -75,7 +75,7 @@ func TestCommand_ParseParams(t *testing.T) {
 			a := Command{
 				ParamNames: tt.fields.ParamNames,
 			}
-			got, err := a.ParseParams(tt.args.text)
+			got, err := a.parseParams(tt.args.text)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Command.ParseParams() error = %v, wantErr %v", err, tt.wantErr)
 				return
@@ -87,7 +87,7 @@ func TestCommand_ParseParams(t *testing.T) {
 	}
 }
 
-func TestCommand_Match(t *testing.T) {
+func TestCommand_match(t *testing.T) {
 	type args struct {
 		text string
 	}
@@ -129,7 +129,7 @@ func TestCommand_Match(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := tt.command.Match(tt.args.text)
+			got, got1 := tt.command.match(tt.args.text)
 			if !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("Command.Match() got = %v, want %v", got, tt.want)
 			}

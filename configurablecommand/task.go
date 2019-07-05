@@ -1,89 +1,133 @@
 package configurablecommand
 
 import (
-	"sync"
+	"errors"
+	"fmt"
 	"time"
 
 	"github.com/li-go/gobot/gobot"
 )
 
-type Task struct {
-	Cmd     Command
-	Msg     gobot.Message
-	StartAt time.Time
-	EndAt   *time.Time
-	Err     error
-}
+//go:generate stringer -type=TaskStatus
+type TaskStatus int
 
 const (
-	maxTasks = 100
+	Pending TaskStatus = iota
+	Canceled
+	Started
+	Succeeded
+	Failed
 )
 
 var (
-	tasks []*Task
-	mutex sync.RWMutex
+	ErrNoCancelPermission = errors.New("no cancel permission")
 )
 
-func GetTasks() []Task {
-	mutex.RLock()
-	defer mutex.RUnlock()
-	var tt []Task
-	for _, t := range tasks {
-		tt = append(tt, *t)
-	}
-	return tt
+type Task struct {
+	ID  int
+	Msg gobot.Message
+
+	bot gobot.Bot
+	cmd Command
+
+	runAt    time.Time
+	cancelAt *time.Time
+	startAt  *time.Time
+	finishAt *time.Time
+
+	executor *Executor
+
+	err error
 }
 
-func addTask(cmd Command, msg gobot.Message) *Task {
-	mutex.Lock()
-	defer mutex.Unlock()
-	for len(tasks) >= maxTasks {
-		removeTask()
-	}
-	task := &Task{
-		Cmd:     cmd,
-		Msg:     msg,
-		Err:     nil,
-		StartAt: time.Now(),
-		EndAt:   nil,
-	}
-	tasks = append(tasks, task)
-	return task
-}
-
-func finishTask(task *Task, err error) {
-	t := time.Now()
-	task.EndAt = &t
-	task.Err = err
-}
-
-func removeTask() {
-	if len(tasks) == 0 {
-		return
-	}
-
-	removeIdx := 0
-	for i, task := range tasks {
-		if LessFunc(*task, *tasks[removeIdx]) {
-			removeIdx = i
+func (t *Task) Status() TaskStatus {
+	if t.finishAt != nil {
+		if t.err == nil {
+			return Succeeded
 		}
+		return Failed
 	}
-
-	var newTasks []*Task
-	newTasks = append(newTasks, tasks[:removeIdx]...)
-	newTasks = append(newTasks, tasks[removeIdx+1:]...)
-	tasks = newTasks
+	if t.startAt != nil {
+		return Started
+	}
+	return Pending
 }
 
-func LessFunc(task1, task2 Task) bool {
-	if task1.EndAt != nil && task2.EndAt == nil {
-		return true
+func (t *Task) Start() {
+	now1 := time.Now()
+	t.startAt = &now1
+
+	err := t.execute()
+
+	now2 := time.Now()
+	t.finishAt = &now2
+	t.err = err
+}
+
+func (t *Task) Cancel(userID string) error {
+	if userID != t.Msg.UserID {
+		return ErrNoCancelPermission
 	}
-	if task1.EndAt == nil && task2.EndAt != nil {
-		return false
+
+	if t.Status() == Started && t.executor != nil {
+		t.err = t.executor.Stop()
 	}
-	if task1.EndAt != nil && task2.EndAt != nil {
-		return task1.EndAt.Before(*task2.EndAt)
+	now := time.Now()
+	t.cancelAt = &now
+	return nil
+}
+
+func (t *Task) Duration() time.Duration {
+	switch t.Status() {
+	case Pending:
+		return 0
+	case Canceled:
+		if t.startAt != nil {
+			return time.Since(*t.startAt)
+		}
+		return 0
+	case Started:
+		return time.Since(*t.startAt)
+	case Succeeded, Failed:
+		return t.finishAt.Sub(*t.startAt)
+	default:
+		return 0
 	}
-	return task1.StartAt.Before(task2.StartAt)
+}
+
+func (t *Task) execute() error {
+	bot := t.bot
+	msg := t.Msg
+
+	executor, err := t.cmd.newExecutor(bot, msg)
+	if err != nil {
+		return err
+	}
+	defer executor.Close()
+
+	t.executor = executor
+
+	// execute
+	channel, err := bot.LoadChannel(msg.ChannelID)
+	if err != nil {
+		return err
+	}
+	user, err := bot.LoadUser(msg.UserID)
+	if err != nil {
+		return err
+	}
+	bot.GetLogger().Printf("%s is executing `%s` in %s", user, executor.Command(), channel)
+	onErr := func(err error) {
+		bot.SendMessage(fmt.Sprintf("<@%s> *failed* - `%s` :see_no_evil: (error: %s)", msg.UserID, msg.Text, err), msg.ChannelID)
+	}
+	if err := executor.Start(); err != nil {
+		onErr(err)
+		return err
+	}
+	if err := executor.Wait(); err != nil {
+		onErr(err)
+		return err
+	}
+	bot.SendMessage(fmt.Sprintf("<@%s> *succeeded* - `%s` :open_mouth:", msg.UserID, msg.Text), msg.ChannelID)
+	return nil
 }

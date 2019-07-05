@@ -1,23 +1,19 @@
 package handlers
 
 import (
-	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/li-go/gobot/configurablecommand"
 	"github.com/li-go/gobot/gobot"
 )
 
-var (
-	listMaxTasks = 10
-)
-
 var ListHandler = gobot.Handler{
-	Name:         "list",
-	Help:         "list - list running/finished commands",
+	Name:         "ps",
+	Help:         "ps - list running/finished commands",
 	NeedsMention: true,
 	Handleable: func(bot gobot.Bot, msg gobot.Message) bool {
-		return msg.Text == "list"
+		return msg.Text == "ps"
 	},
 	Handle: func(bot gobot.Bot, msg gobot.Message) error {
 		tasks := configurablecommand.GetTasks()
@@ -28,33 +24,15 @@ var ListHandler = gobot.Handler{
 			}
 			tt = append(tt, task)
 		}
-		sort.Slice(tt, func(i, j int) bool {
-			return configurablecommand.LessFunc(tt[i], tt[j])
-		})
-		if len(tt) > listMaxTasks {
-			tt = tt[len(tt)-listMaxTasks:]
-		}
 		var ss []string
 		for _, task := range tt {
 			user, err := bot.LoadUser(task.Msg.UserID)
 			if err != nil {
-				user = "unknown"
+				user = "anonymous"
 			}
-			s := "  * " + user
-			if task.EndAt == nil {
-				s += " is executing"
-			} else {
-				s += " executed"
-			}
-			s += " `" + task.Msg.Text + "`"
-			s += " (" + task.StartAt.Format("01/02 15:04") + " ~"
-			if task.EndAt != nil {
-				s += " " + task.EndAt.Format("01/02 15:04")
-			}
-			s += ")"
-			if task.Err != nil {
-				s += " (error: " + task.Err.Error() + ")"
-			}
+			s := "  * " + strconv.Itoa(task.ID) + ". (" + task.Status().String() + ") " +
+				user + ": " + task.Msg.Text +
+				" (time: " + task.Duration().String() + ")"
 			ss = append(ss, s)
 		}
 		text := "```\n" + "Latest commands:\n" + strings.Join(ss, "\n") + "\n```"
