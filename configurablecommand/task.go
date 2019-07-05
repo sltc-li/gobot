@@ -117,15 +117,10 @@ func (t *Task) execute() error {
 		return err
 	}
 	bot.GetLogger().Printf("%s is executing `%s` in %s", user, executor.Command(), channel)
-	onErr := func(err error) {
-		bot.SendMessage(fmt.Sprintf("<@%s> *failed* - `%s` :see_no_evil: (error: %s)", msg.UserID, msg.Text, err), msg.ChannelID)
-	}
 	if err := executor.Start(); err != nil {
-		onErr(err)
 		return err
 	}
 	if err := executor.Wait(); err != nil {
-		onErr(err)
 		return err
 	}
 	bot.SendMessage(fmt.Sprintf("<@%s> *succeeded* - `%s` :open_mouth:", msg.UserID, msg.Text), msg.ChannelID)

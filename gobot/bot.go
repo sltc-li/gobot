@@ -99,7 +99,7 @@ func (bot *bot) Start() {
 
 func (bot *bot) handle(handler Handler, msg Message) {
 	if err := handler.Handle(bot, msg); err != nil {
-		bot.logger.Printf("hander(%s - %s) error: %v", handler.Name, msg.Text, err)
+		bot.SendMessage(fmt.Sprintf("<@%s> *failed* - `%s` :see_no_evil: (error: %s)", msg.UserID, msg.Text, err), msg.ChannelID)
 	}
 }
 
