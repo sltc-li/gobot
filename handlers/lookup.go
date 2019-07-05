@@ -12,9 +12,7 @@ var (
 
 var LookupHandler = gobot.Handler{
 	Name: "lookup",
-	Help: func(botUser string) string {
-		return "lookup: @someone"
-	},
+	Help: "lookup: @someone - show information of @someone",
 	Handleable: func(bot gobot.Bot, msg gobot.Message) bool {
 		return lookupPattern.MatchString(msg.Text)
 	},

@@ -116,14 +116,10 @@ func (c Command) Match(text string) (bool, string) {
 
 func (c Command) Handler() gobot.Handler {
 	return gobot.Handler{
-		Name: c.Name,
-		Help: func(botUser string) string {
-			return botUser + " " + c.help()
-		},
+		Name:         c.Name,
+		Help:         c.help(),
+		NeedsMention: true,
 		Handleable: func(bot gobot.Bot, msg gobot.Message) bool {
-			if msg.Type == gobot.ListenTo {
-				return false
-			}
 			m, _ := c.Match(msg.Text)
 			return m
 		},
@@ -184,28 +180,27 @@ func (c Command) run(bot gobot.Bot, msg gobot.Message) error {
 
 	// error message hook
 	go func(e *Executor, c Command) {
+		errChannelID := c.ErrChannelID
+		if len(errChannelID) == 0 {
+			errChannelID = msg.ChannelID
+		}
+
 		for {
 			errMsg, ok := e.NextErrorMessage()
 			if !ok {
 				break
 			}
-			if len(c.ErrChannelID) > 0 {
-				bot.SendMessage(fmt.Sprintf(errMsgFmt, errMsg), c.ErrChannelID)
-			}
+			bot.SendMessage(fmt.Sprintf(errMsgFmt, errMsg), errChannelID)
 		}
 	}(executor, c)
 
 	// execute
 	bot.GetLogger().Printf("%s is executing `%s` in %s", user, executor.Command(), channel)
 	if err := executor.Exec(); err != nil {
-		if len(c.ErrChannelID) > 0 {
-			bot.SendMessage(fmt.Sprintf("<@%s> *failed* - `%s` :see_no_evil:", msg.UserID, msg.Text), c.ErrChannelID)
-		}
+		bot.SendMessage(fmt.Sprintf("<@%s> *failed* - `%s` :see_no_evil:", msg.UserID, msg.Text), msg.ChannelID)
 		return err
 	}
-	if len(c.ErrChannelID) > 0 {
-		bot.SendMessage(fmt.Sprintf("<@%s> *succeeded* - `%s` :open_mouth:", msg.UserID, msg.Text), c.ErrChannelID)
-	}
+	bot.SendMessage(fmt.Sprintf("<@%s> *succeeded* - `%s` :open_mouth:", msg.UserID, msg.Text), msg.ChannelID)
 	bot.GetLogger().Printf("succeeded")
 	return nil
 }

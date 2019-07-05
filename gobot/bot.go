@@ -28,7 +28,7 @@ type bot struct {
 	rtm       *slack.RTM
 	logger    *log.Logger
 	msgParser *MessageParser
-	botUser   string
+	user      string
 	channels  map[string]string
 	users     map[string]string
 
@@ -46,7 +46,7 @@ func New(token string, logger *log.Logger) (Bot, error) {
 		rtm:       rtm,
 		logger:    logger,
 		msgParser: NewMessageParser(res.UserID),
-		botUser:   "@" + res.User,
+		user:      "@" + res.User,
 		channels:  make(map[string]string),
 		users:     make(map[string]string),
 	}, nil
@@ -82,6 +82,9 @@ func (bot *bot) Start() {
 			parsedMsg := bot.msgParser.Parse(msg.Text, msg.Channel, msg.User)
 
 			for _, handler := range bot.handlers {
+				if handler.NeedsMention && parsedMsg.Type == ListenTo {
+					continue
+				}
 				if !handler.Handleable(bot, parsedMsg) {
 					continue
 				}
@@ -118,7 +121,7 @@ func (bot *bot) LoadChannel(channelID string) (string, error) {
 
 	c, err := bot.rtm.GetConversationInfo(channelID, false)
 	if err != nil {
-		return "", fmt.Errorf("fail to get connversation: %v", err)
+		return "", fmt.Errorf("fail to get connversation(%s): %v", channelID, err)
 	}
 	bot.channels[channelID] = "#" + c.Name
 	if c.IsIM {
@@ -134,7 +137,7 @@ func (bot *bot) LoadUser(userID string) (string, error) {
 
 	user, err := bot.rtm.GetUserInfo(userID)
 	if err != nil {
-		return "", fmt.Errorf("fail to get user: %v", err)
+		return "", fmt.Errorf("fail to get user(%s): %v", userID, err)
 	}
 	bot.users[userID] = "@" + user.Profile.DisplayName
 	return bot.users[userID], nil
@@ -143,7 +146,12 @@ func (bot *bot) LoadUser(userID string) (string, error) {
 func (bot *bot) Help() string {
 	h := []string{"```", "available commands:"}
 	for _, handler := range bot.handlers {
-		h = append(h, "  * "+handler.Help(bot.botUser))
+		s := "  * "
+		if handler.NeedsMention {
+			s += bot.user + " "
+		}
+		s += handler.Help
+		h = append(h, s)
 	}
 	h = append(h, "```")
 	return strings.Join(h, "\n")

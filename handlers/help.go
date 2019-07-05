@@ -4,9 +4,7 @@ import "github.com/li-go/gobot/gobot"
 
 var HelpHandler = gobot.Handler{
 	Name: "help",
-	Help: func(botUser string) string {
-		return "help?"
-	},
+	Help: "help? - print help information",
 	Handleable: func(bot gobot.Bot, msg gobot.Message) bool {
 		return msg.Text == "help?"
 	},

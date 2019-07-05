@@ -12,14 +12,10 @@ var (
 )
 
 var ListHandler = gobot.Handler{
-	Name: "list",
-	Help: func(botUser string) string {
-		return "@" + botUser + " list"
-	},
+	Name:         "list",
+	Help:         "list - list running/finished commands",
+	NeedsMention: true,
 	Handleable: func(bot gobot.Bot, msg gobot.Message) bool {
-		if msg.Type == gobot.ListenTo {
-			return false
-		}
 		return msg.Text == "list"
 	},
 	Handle: func(bot gobot.Bot, msg gobot.Message) error {
@@ -50,6 +46,11 @@ var ListHandler = gobot.Handler{
 				s += " executed"
 			}
 			s += " `" + task.Msg.Text + "`"
+			s += " (" + task.StartAt.Format("01/02 15:04") + " ~"
+			if task.EndAt != nil {
+				s += " " + task.EndAt.Format("01/02 15:04")
+			}
+			s += ")"
 			if task.Err != nil {
 				s += " (error: " + task.Err.Error() + ")"
 			}
