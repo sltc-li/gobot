@@ -200,3 +200,7 @@ func (e *Executor) Stop() error {
 	e.stopped = true
 	return e.cmd.Process.Kill()
 }
+
+func (e *Executor) IsStopped() bool {
+	return e.stopped
+}

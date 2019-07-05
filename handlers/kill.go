@@ -28,7 +28,6 @@ var killHandler = gobot.Handler{
 		if err := task.Kill(msg.UserID); err != nil {
 			return err
 		}
-		bot.SendMessage("command#"+strconv.Itoa(id)+" killed!", msg.ChannelID)
 		return psHandler.Handle(bot, msg)
 	},
 }

@@ -130,6 +130,8 @@ func (t *Task) execute() error {
 	if err := executor.Wait(); err != nil {
 		return err
 	}
-	bot.SendMessage(fmt.Sprintf("<@%s> *succeeded* - `%s` :open_mouth:", msg.UserID, msg.Text), msg.ChannelID)
+	if !executor.IsStopped() {
+		bot.SendMessage(fmt.Sprintf("<@%s> *succeeded* - `%s` :open_mouth:", msg.UserID, msg.Text), msg.ChannelID)
+	}
 	return nil
 }
