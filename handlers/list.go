@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"github.com/li-go/gobot/configurablecommand"
-	"github.com/li-go/gobot/gobot"
 	"sort"
 	"strings"
+
+	"github.com/li-go/gobot/configurablecommand"
+	"github.com/li-go/gobot/gobot"
 )
 
 var (

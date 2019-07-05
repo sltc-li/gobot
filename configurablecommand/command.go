@@ -3,8 +3,9 @@ package configurablecommand
 import (
 	"errors"
 	"fmt"
-	"github.com/li-go/gobot/gobot"
 	"strings"
+
+	"github.com/li-go/gobot/gobot"
 )
 
 var (

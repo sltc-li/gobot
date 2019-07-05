@@ -2,8 +2,9 @@ package handlers
 
 import (
 	"encoding/json"
-	"github.com/li-go/gobot/gobot"
 	"regexp"
+
+	"github.com/li-go/gobot/gobot"
 )
 
 var (

@@ -1,9 +1,10 @@
 package configurablecommand
 
 import (
-	"github.com/li-go/gobot/gobot"
 	"sync"
 	"time"
+
+	"github.com/li-go/gobot/gobot"
 )
 
 type Task struct {

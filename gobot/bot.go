@@ -3,9 +3,10 @@ package gobot
 import (
 	"errors"
 	"fmt"
-	"github.com/nlopes/slack"
 	"log"
 	"strings"
+
+	"github.com/nlopes/slack"
 )
 
 var (

@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"strings"
 	"time"
 )
@@ -30,6 +31,16 @@ func NewExecutor(action Command, params []Param) (*Executor, error) {
 		args = append(args, "--"+p.Name, p.Value)
 	}
 	cmd := exec.Command(args[0], args[1:]...)
+
+	logFilename := action.LogFilename
+	if len(logFilename) == 0 {
+		logFilename = "/dev/null"
+	}
+	logFilename, err := fullpath(logFilename)
+	if err != nil {
+		return nil, err
+	}
+
 	file, err := os.OpenFile(action.LogFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("fail to open log file: %v", err)
@@ -45,6 +56,7 @@ func NewExecutor(action Command, params []Param) (*Executor, error) {
 		file.Close()
 		return nil, fmt.Errorf("fail to open stderr pipe: %v", err)
 	}
+
 	return &Executor{
 		action:     action,
 		params:     params,
@@ -57,6 +69,17 @@ func NewExecutor(action Command, params []Param) (*Executor, error) {
 
 func (e *Executor) Close() error {
 	return e.file.Close()
+}
+
+func fullpath(path string) (string, error) {
+	if !strings.HasPrefix(path, "~") {
+		return path, nil
+	}
+	u, err := user.Current()
+	if err != nil {
+		return "", err
+	}
+	return strings.Replace(path, "~", u.HomeDir, 1), nil
 }
 
 func initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan string, error) {

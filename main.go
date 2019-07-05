@@ -3,11 +3,12 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"log"
+	"os"
+
 	"github.com/li-go/gobot/configurablecommand"
 	"github.com/li-go/gobot/gobot"
 	"github.com/li-go/gobot/handlers"
-	"log"
-	"os"
 )
 
 var (
