@@ -132,6 +132,11 @@ func (bot *bot) LoadChannel(channelID string) (string, error) {
 }
 
 func (bot *bot) LoadUser(userID string) (string, error) {
+	// WTF: empty userID
+	if len(userID) == 0 {
+		return "", nil
+	}
+
 	if u, ok := bot.users[userID]; ok {
 		return u, nil
 	}
