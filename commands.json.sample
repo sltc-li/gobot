@@ -2,7 +2,7 @@
   "commands": [
     {
       "name": "distribute alpha",
-      "command": "sh build-example.sh",
+      "command": "./build-example.sh",
       "params": [
         "branch",
         "version"

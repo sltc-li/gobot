@@ -30,7 +30,7 @@ Start build:
   Branch: $branch
 \`\`\`"
 
-sleep 2
+sleep 20
 
 post_slack "\`\`\`
 Finished build:
