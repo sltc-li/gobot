@@ -41,7 +41,7 @@ func NewExecutor(action Command, params []Param) (*Executor, error) {
 		return nil, err
 	}
 
-	file, err := os.OpenFile(action.LogFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	file, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
 		return nil, fmt.Errorf("fail to open log file: %v", err)
 	}
