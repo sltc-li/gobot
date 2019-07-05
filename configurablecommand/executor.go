@@ -1,4 +1,4 @@
-package action
+package configurablecommand
 
 import (
 	"bufio"
@@ -13,7 +13,7 @@ import (
 )
 
 type Executor struct {
-	action Action
+	action Command
 	params []Param
 
 	cmd *exec.Cmd
@@ -24,7 +24,7 @@ type Executor struct {
 	errMsgCh   <-chan string
 }
 
-func NewExecutor(action Action, params []Param) (*Executor, error) {
+func NewExecutor(action Command, params []Param) (*Executor, error) {
 	args := strings.Split(action.Command, " ")
 	for _, p := range params {
 		args = append(args, "--"+p.Name, p.Value)

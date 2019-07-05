@@ -1,5 +1,5 @@
 {
-  "actions": [
+  "commands": [
     {
       "name": "distribute alpha",
       "command": "sh build-example.sh",

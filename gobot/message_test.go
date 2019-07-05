@@ -1,4 +1,4 @@
-package bot
+package gobot
 
 import (
 	"reflect"
@@ -18,37 +18,37 @@ func TestMessageParser_Parse(t *testing.T) {
 		name   string
 		fields fields
 		args   args
-		want   *Message
+		want   Message
 	}{
 		{
 			name:   "direct message",
 			fields: fields{replyPrefix: "<@PREFIX>"},
 			args:   args{userID: "U123", channelID: "D123", msg: "hello"},
-			want:   &Message{Type: DirectMessage, Text: "hello", ChannelID: "D123", UserID: "U123"},
+			want:   Message{Type: DirectMessage, Text: "hello", ChannelID: "D123", UserID: "U123"},
 		},
 		{
 			name:   "reply to",
 			fields: fields{replyPrefix: "<@PREFIX>"},
 			args:   args{userID: "U123", channelID: "X123", msg: "<@PREFIX> hello"},
-			want:   &Message{Type: ReplyTo, Text: "hello", ChannelID: "X123", UserID: "U123"},
+			want:   Message{Type: ReplyTo, Text: "hello", ChannelID: "X123", UserID: "U123"},
 		},
 		{
 			name:   "listen to",
 			fields: fields{replyPrefix: "<@PREFIX>"},
 			args:   args{userID: "U123", channelID: "X123", msg: "hello"},
-			want:   &Message{Type: ListenTo, Text: "hello", ChannelID: "X123", UserID: "U123"},
+			want:   Message{Type: ListenTo, Text: "hello", ChannelID: "X123", UserID: "U123"},
 		},
 		{
 			name:   "clean message",
 			fields: fields{replyPrefix: "<@PREFIX>"},
 			args:   args{userID: "U123", channelID: "X123", msg: "  hello   world    "},
-			want:   &Message{Type: ListenTo, Text: "hello world", ChannelID: "X123", UserID: "U123"},
+			want:   Message{Type: ListenTo, Text: "hello world", ChannelID: "X123", UserID: "U123"},
 		},
 		{
 			name:   "clean message - fullwidth",
 			fields: fields{replyPrefix: "<@PREFIX>"},
 			args:   args{userID: "U123", channelID: "X123", msg: "  　hello  　　 world  　　　  "},
-			want:   &Message{Type: ListenTo, Text: "hello world", ChannelID: "X123", UserID: "U123"},
+			want:   Message{Type: ListenTo, Text: "hello world", ChannelID: "X123", UserID: "U123"},
 		},
 	}
 	for _, tt := range tests {

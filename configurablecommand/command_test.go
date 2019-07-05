@@ -1,11 +1,11 @@
-package action
+package configurablecommand
 
 import (
 	"reflect"
 	"testing"
 )
 
-func TestAction_ParseParams(t *testing.T) {
+func TestCommand_ParseParams(t *testing.T) {
 	type fields struct {
 		Name       string
 		ParamNames []string
@@ -72,69 +72,69 @@ func TestAction_ParseParams(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			a := Action{
+			a := Command{
 				ParamNames: tt.fields.ParamNames,
 			}
 			got, err := a.ParseParams(tt.args.text)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("Action.ParseParams() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("Command.ParseParams() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Action.ParseParams() = %v, want %v", got, tt.want)
+				t.Errorf("Command.ParseParams() = %v, want %v", got, tt.want)
 			}
 		})
 	}
 }
 
-func TestActions_Match(t *testing.T) {
+func TestCommand_Match(t *testing.T) {
 	type args struct {
 		text string
 	}
 	tests := []struct {
 		name    string
-		actions Actions
+		command Command
 		args    args
-		want    *Action
+		want    bool
 		want1   string
 	}{
 		{
-			name:    "not found",
-			actions: Actions{Action{Name: "aaa"}},
+			name:    "not match",
+			command: Command{Name: "aaa"},
 			args:    args{text: "xxx"},
-			want:    nil,
+			want:    false,
 			want1:   "",
 		},
 		{
-			name:    "not found - not following space",
-			actions: Actions{Action{Name: "aaa"}},
+			name:    "not match - not following space",
+			command: Command{Name: "aaa"},
 			args:    args{text: "aaabbb"},
-			want:    nil,
+			want:    false,
 			want1:   "",
 		},
 		{
-			name:    "found",
-			actions: Actions{Action{Name: "aaa"}},
+			name:    "matched",
+			command: Command{Name: "aaa"},
 			args:    args{text: "aaa"},
-			want:    &Action{Name: "aaa"},
+			want:    true,
 			want1:   "",
 		},
 		{
-			name:    "found - with follow text",
-			actions: Actions{Action{Name: "aaa"}},
+			name:    "matched - with follow text",
+			command: Command{Name: "aaa"},
 			args:    args{text: "aaa bbb ccc"},
-			want:    &Action{Name: "aaa"},
+			want:    true,
 			want1:   "bbb ccc",
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, got1 := tt.actions.Match(tt.args.text)
+			got, got1 := tt.command.Match(tt.args.text)
 			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Actions.Match() got = %v, want %v", got, tt.want)
+				t.Errorf("Command.Match() got = %v, want %v", got, tt.want)
 			}
 			if got1 != tt.want1 {
-				t.Errorf("Actions.Match() got1 = %v, want %v", got1, tt.want1)
+				t.Errorf("Command.Match() got1 = %v, want %v", got1, tt.want1)
 			}
 		})
 	}
