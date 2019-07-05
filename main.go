@@ -22,7 +22,7 @@ func usage(err error) {
 }
 
 func main() {
-	flag.StringVar(&commandsCfg, "commands-conf", "", "commands configuration in json format")
+	flag.StringVar(&commandsCfg, "c", "", "commands config in json format")
 	flag.Parse()
 
 	var commands []configurablecommand.Command
