@@ -14,8 +14,8 @@ import (
 )
 
 type Executor struct {
-	action Command
-	params []param
+	command Command
+	params  []param
 
 	cmd *exec.Cmd
 
@@ -27,14 +27,14 @@ type Executor struct {
 	stopped bool
 }
 
-func NewExecutor(action Command, params []param) (*Executor, error) {
-	args := strings.Split(action.Command, " ")
+func NewExecutor(c Command, params []param) (*Executor, error) {
+	command := c.Command
 	for _, p := range params {
-		args = append(args, "--"+p.Name, p.Value)
+		command += " --" + p.Name + " " + p.Value
 	}
-	cmd := exec.Command(args[0], args[1:]...)
+	cmd := exec.Command("bash", "-c", command)
 
-	logFilename := action.LogFilename
+	logFilename := c.LogFilename
 	if len(logFilename) == 0 {
 		logFilename = "/dev/null"
 	}
@@ -44,9 +44,9 @@ func NewExecutor(action Command, params []param) (*Executor, error) {
 	}
 
 	executor := &Executor{
-		action: action,
-		params: params,
-		cmd:    cmd,
+		command: c,
+		params:  params,
+		cmd:     cmd,
 	}
 
 	file, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
@@ -171,7 +171,7 @@ func (e *Executor) send(ctx context.Context, ch chan<- string, msg string) {
 }
 
 func (e *Executor) Command() string {
-	return strings.Join(e.cmd.Args, " ")
+	return strings.Join(e.cmd.Args[2:], " ")
 }
 
 func (e *Executor) NextSlackMessage() (string, bool) {
