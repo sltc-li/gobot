@@ -125,6 +125,7 @@ func (t *Task) execute() error {
 	}
 	bot.GetLogger().Printf("%s is executing `%s` in %s", user, executor.Command(), channel)
 	if err := executor.Start(); err != nil {
+		bot.SendMessage(fmt.Sprintf(errMsgFmt, err.Error()), msg.ChannelID)
 		return err
 	}
 	if err := executor.Wait(); err != nil {
