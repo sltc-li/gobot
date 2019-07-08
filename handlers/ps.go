@@ -3,6 +3,7 @@ package handlers
 import (
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/li-go/gobot/configurablecommand"
 	"github.com/li-go/gobot/gobot"
@@ -32,7 +33,7 @@ var psHandler = gobot.Handler{
 			}
 			s := "  * " + strconv.Itoa(task.ID) + ". (" + task.Status().String() + ") " +
 				user + ": " + task.Msg.Text +
-				" (time: " + task.Duration().String() + ")"
+				" (time: " + (task.Duration() / time.Millisecond * time.Millisecond).String() + ")"
 			ss = append(ss, s)
 		}
 		text := "```\n" + "Latest commands:\n" + strings.Join(ss, "\n") + "\n```"
