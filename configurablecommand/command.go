@@ -96,6 +96,7 @@ func (c Command) newExecutor(bot gobot.Bot, msg gobot.Message) (*Executor, error
 			if !ok {
 				break
 			}
+			errMsg = strings.TrimSuffix(errMsg, "\n")
 			bot.SendMessage(fmt.Sprintf(errMsgFmt, errMsg), errChannelID)
 		}
 	}(executor, c)

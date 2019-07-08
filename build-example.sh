@@ -1,11 +1,5 @@
 #!/bin/sh
 
-post_slack() {
-  echo post_slack_begin
-  echo "$@"
-  echo post_slack_end
-}
-
 get_argument() {
   name="$1"
   default="$2"

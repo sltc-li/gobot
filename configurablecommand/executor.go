@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"os/exec"
@@ -13,13 +14,20 @@ import (
 	"time"
 )
 
+const (
+	postSlackBegin = "post_slack_begin"
+	postSlackEnd   = "post_slack_end"
+	postSlack      = "#!/bin/sh\necho " + postSlackBegin + "\necho \"$@\"\necho " + postSlackEnd + "\n"
+	postSlackPath  = "/usr/local/bin/post_slack"
+)
+
 type Executor struct {
 	command Command
 	params  []param
 
 	cmd *exec.Cmd
 
-	file *os.File
+	logFile *os.File
 
 	slackMsgCh <-chan string
 	errMsgCh   <-chan string
@@ -28,52 +36,65 @@ type Executor struct {
 }
 
 func NewExecutor(c Command, params []param) (*Executor, error) {
+	executor := &Executor{command: c, params: params}
+
+	// create command
+	if err := ioutil.WriteFile(postSlackPath, []byte(postSlack), 0777); err != nil {
+		// ignore error
+		log.Printf("warning: unable to create " + postSlackPath)
+	}
 	command := c.Command
 	for _, p := range params {
 		command += " --" + p.Name + " " + p.Value
 	}
 	cmd := exec.Command("bash", "-c", command)
+	executor.cmd = cmd
 
+	// create log file
 	logFilename := c.LogFilename
 	if len(logFilename) == 0 {
 		logFilename = "/dev/null"
 	}
 	logFilename, err := fullpath(logFilename)
 	if err != nil {
+		executor.clean()
 		return nil, err
 	}
-
-	executor := &Executor{
-		command: c,
-		params:  params,
-		cmd:     cmd,
-	}
-
-	file, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	logFile, err := os.OpenFile(logFilename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
 	if err != nil {
-		return nil, fmt.Errorf("fail to open log file: %v", err)
+		executor.clean()
+		return nil, fmt.Errorf("fail to open log logFile: %v", err)
 	}
-	logger := log.New(file, "", log.LstdFlags)
+	executor.logFile = logFile
+
+	// create logger
+	logger := log.New(logFile, "", log.LstdFlags)
 	slackMsgCh, err := executor.initStdoutPipe(cmd, logger)
 	if err != nil {
-		file.Close()
+		executor.clean()
 		return nil, fmt.Errorf("fail to open stdout pipe: %v", err)
 	}
 	errMsgCh, err := executor.initStderrPipe(cmd, logger)
 	if err != nil {
-		file.Close()
+		executor.clean()
 		return nil, fmt.Errorf("fail to open stderr pipe: %v", err)
 	}
-
-	executor.file = file
 	executor.slackMsgCh = slackMsgCh
 	executor.errMsgCh = errMsgCh
+
 	return executor, nil
 }
 
-func (e *Executor) Close() error {
+func (e *Executor) clean() {
+	if e.logFile != nil {
+		e.logFile.Close()
+	}
+	os.Remove(postSlackPath)
+}
+
+func (e *Executor) Close() {
 	e.stopped = true
-	return e.file.Close()
+	e.clean()
 }
 
 func fullpath(path string) (string, error) {
@@ -106,11 +127,11 @@ func (e *Executor) initStdoutPipe(cmd *exec.Cmd, logger *log.Logger) (<-chan str
 			text := scanner.Text()
 			logger.Print(text)
 
-			if text == "post_slack_begin" {
+			if text == postSlackBegin {
 				texts = []string{}
 				continue
 			}
-			if text == "post_slack_end" {
+			if text == postSlackEnd {
 				ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 				e.send(ctx, ch, strings.Join(texts, "\n"))
 				cancel()
@@ -171,7 +192,7 @@ func (e *Executor) send(ctx context.Context, ch chan<- string, msg string) {
 }
 
 func (e *Executor) Command() string {
-	return strings.Join(e.cmd.Args[2:], " ")
+	return e.cmd.Args[2]
 }
 
 func (e *Executor) NextSlackMessage() (string, bool) {
