@@ -1,0 +1,13 @@
+---
+- name: dist-beta
+  command: "./build-example.sh"
+  params:
+  - branch
+  - version
+  log: "/tmp/log"
+  error_channel: CXXXXXXXX
+  channels:
+  - "<direct message>"
+  - "#gobot-test"
+  users:
+  - "@li-go"

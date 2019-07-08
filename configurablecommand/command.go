@@ -17,11 +17,11 @@ var (
 type Command struct {
 	Name         string
 	Command      string
-	ParamNames   []string `json:"params"`
-	LogFilename  string   `json:"log"`
-	ErrChannelID string   `json:"error_channel"`
-	ChannelNames []string `json:"channels"`
-	UserNames    []string `json:"users"`
+	ParamNames   []string `yaml:"params"`
+	LogFilename  string   `yaml:"log"`
+	ErrChannelID string   `yaml:"error_channel"`
+	ChannelNames []string `yaml:"channels"`
+	UserNames    []string `yaml:"users"`
 }
 
 func (c Command) Handler() gobot.Handler {

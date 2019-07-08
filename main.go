@@ -1,10 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"log"
 	"os"
+
+	"gopkg.in/yaml.v2"
 
 	"github.com/li-go/gobot/configurablecommand"
 	"github.com/li-go/gobot/gobot"
@@ -22,21 +23,19 @@ func usage(err error) {
 }
 
 func main() {
-	flag.StringVar(&commandsCfg, "c", "", "commands config in json format")
+	flag.StringVar(&commandsCfg, "c", "", "commands config in yaml format")
 	flag.Parse()
 
 	var commands []configurablecommand.Command
 	if len(commandsCfg) > 0 {
-		reader, err := os.Open(commandsCfg)
+		file, err := os.Open(commandsCfg)
 		if err != nil {
 			usage(err)
 		}
-		var v struct{ Commands []configurablecommand.Command }
-		err = json.NewDecoder(reader).Decode(&v)
+		err = yaml.NewDecoder(file).Decode(&commands)
 		if err != nil {
 			usage(err)
 		}
-		commands = v.Commands
 	}
 
 	logger := log.New(os.Stdout, "bot: ", log.LstdFlags)
