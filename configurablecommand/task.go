@@ -63,12 +63,14 @@ func (t *Task) Start() {
 	err := t.execute()
 
 	if t.Status() == Killed {
+		saveTask(t)
 		return
 	}
 
 	now2 := time.Now()
 	t.finishAt = &now2
 	t.err = err
+	saveTask(t)
 }
 
 func (t *Task) Kill(userID string) error {
@@ -81,6 +83,7 @@ func (t *Task) Kill(userID string) error {
 	}
 	now := time.Now()
 	t.killAt = &now
+	saveTask(t)
 	return nil
 }
 

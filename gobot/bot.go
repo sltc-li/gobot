@@ -73,6 +73,11 @@ func (bot *bot) Start() {
 	bot.logger.Print("start receiving incoming events...")
 	for ev := range bot.rtm.IncomingEvents {
 		if msg, ok := ev.Data.(*slack.MessageEvent); ok {
+			// ignore bot message
+			if msg.SubType == "bot_message" {
+				continue
+			}
+
 			if _, err := bot.LoadChannel(msg.Channel); err != nil {
 				bot.logger.Print(err)
 				continue

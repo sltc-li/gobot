@@ -58,6 +58,9 @@ func main() {
 		}
 	}
 
+	// load pending tasks
+	configurablecommand.LoadPendingTasks(bot)
+
 	// start
 	bot.Start()
 }

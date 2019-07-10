@@ -47,19 +47,19 @@ var lunchHandler = gobot.Handler{
 			return nil
 		}
 
-		ai, err := newLunchAi()
+		store, err := newLunchStore()
 		if err != nil {
 			return fmtStorageErr(err)
 		}
-		defer ai.Close()
+		defer store.Close()
 
 		if lunchAddPattern.MatchString(msg.Text) {
 			name := lunchAddPattern.FindStringSubmatch(msg.Text)[1]
 			r := Restaurant{Name: name}
-			if ai.Exists(r) {
+			if store.Exists(r) {
 				return errors.New("restaurant already exists")
 			}
-			if err := ai.Add(r); err != nil {
+			if err := store.Add(r); err != nil {
 				return fmtStorageErr(err)
 			}
 			bot.SendMessage("new restaurant added!", msg.ChannelID)
@@ -68,17 +68,17 @@ var lunchHandler = gobot.Handler{
 		if lunchRmPattern.MatchString(msg.Text) {
 			name := lunchRmPattern.FindStringSubmatch(msg.Text)[1]
 			r := Restaurant{Name: name}
-			if !ai.Exists(r) {
+			if !store.Exists(r) {
 				return errors.New("restaurant doesn't exist")
 			}
-			if err := ai.Remove(r); err != nil {
+			if err := store.Remove(r); err != nil {
 				return fmtStorageErr(err)
 			}
 			bot.SendMessage("restaurant removed!", msg.ChannelID)
 			return nil
 		}
 		if lunchLsPattern.MatchString(msg.Text) {
-			restaurants, err := ai.All()
+			restaurants, err := store.All()
 			if err != nil {
 				return fmtStorageErr(err)
 			}
@@ -91,7 +91,7 @@ var lunchHandler = gobot.Handler{
 			return nil
 		}
 		if lunchGachaPattern.MatchString(msg.Text) {
-			restaurant, err := ai.One()
+			restaurant, err := store.One()
 			if err != nil {
 				return fmtStorageErr(err)
 			}
@@ -106,11 +106,11 @@ type Restaurant struct {
 	Name string `db:"name" gorm:"primary_key"`
 }
 
-type lunchAi struct {
+type lunchStore struct {
 	repo localrepo.Repository
 }
 
-func newLunchAi() (*lunchAi, error) {
+func newLunchStore() (*lunchStore, error) {
 	repo, err := localrepo.New()
 	if err != nil {
 		return nil, err
@@ -118,39 +118,39 @@ func newLunchAi() (*lunchAi, error) {
 	if err = repo.Migrate(Restaurant{}); err != nil {
 		return nil, err
 	}
-	return &lunchAi{repo: repo}, nil
+	return &lunchStore{repo: repo}, nil
 }
 
-func (l *lunchAi) Close() error {
-	return l.repo.Close()
+func (store *lunchStore) Close() error {
+	return store.repo.Close()
 }
 
-func (l *lunchAi) Add(r Restaurant) error {
-	return l.repo.Put(r)
+func (store *lunchStore) Add(r Restaurant) error {
+	return store.repo.Put(r)
 }
 
-func (l *lunchAi) Remove(r Restaurant) error {
-	return l.repo.Del(r)
+func (store *lunchStore) Remove(r Restaurant) error {
+	return store.repo.Del(r)
 }
 
-func (l *lunchAi) All() ([]Restaurant, error) {
+func (store *lunchStore) All() ([]Restaurant, error) {
 	var rr []Restaurant
-	err := l.repo.GetAll(Restaurant{}, &rr)
+	err := store.repo.GetAll(Restaurant{}, &rr)
 	return rr, err
 }
 
-func (l *lunchAi) One() (*Restaurant, error) {
+func (store *lunchStore) One() (*Restaurant, error) {
 	var rr []Restaurant
-	if err := l.repo.GetAll(Restaurant{}, &rr); err != nil {
+	if err := store.repo.GetAll(Restaurant{}, &rr); err != nil {
 		return nil, err
 	}
 	rand.Seed(time.Now().UnixNano())
 	return &rr[rand.Intn(len(rr))], nil
 }
 
-func (l *lunchAi) Exists(r Restaurant) bool {
+func (store *lunchStore) Exists(r Restaurant) bool {
 	var nr Restaurant
-	if err := l.repo.GetOne(r, &nr); err != nil {
+	if err := store.repo.GetOne(r, &nr); err != nil {
 		return false
 	}
 	return len(nr.Name) > 0

@@ -41,7 +41,7 @@ var (
 )
 
 func TestLunchAi_Add(t *testing.T) {
-	ai, _ := newLunchAi()
+	ai, _ := newLunchStore()
 	ai.repo = _mock
 
 	r := Restaurant{Name: "restaurant1"}

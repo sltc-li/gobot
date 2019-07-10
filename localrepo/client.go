@@ -6,11 +6,11 @@ import (
 )
 
 type Repository interface {
-	Migrate(data interface{}) error
-	Put(data interface{}) error
+	Migrate(values ...interface{}) error
+	Put(value interface{}) error
 	Del(cond interface{}) error
-	GetOne(cond interface{}, data interface{}) error
-	GetAll(cond interface{}, data interface{}) error
+	GetOne(where interface{}, out interface{}) error
+	GetAll(where interface{}, out interface{}) error
 	Close() error
 }
 
@@ -26,24 +26,24 @@ type repo struct {
 	db *gorm.DB
 }
 
-func (r *repo) Migrate(data interface{}) error {
-	return r.db.AutoMigrate(data).Error
+func (r *repo) Migrate(values ...interface{}) error {
+	return r.db.AutoMigrate(values...).Error
 }
 
-func (r *repo) Put(data interface{}) error {
-	return r.db.Create(data).Error
+func (r *repo) Put(value interface{}) error {
+	return r.db.Create(value).Error
 }
 
-func (r *repo) Del(cond interface{}) error {
-	return r.db.Where(cond).Delete(cond).Error
+func (r *repo) Del(where interface{}) error {
+	return r.db.Where(where).Delete(where).Error
 }
 
-func (r *repo) GetOne(cond interface{}, data interface{}) error {
-	return r.db.Where(cond).First(data).Error
+func (r *repo) GetOne(where interface{}, out interface{}) error {
+	return r.db.Where(where).First(out).Error
 }
 
-func (r *repo) GetAll(cond interface{}, data interface{}) error {
-	return r.db.Where(cond).Find(data).Error
+func (r *repo) GetAll(where interface{}, out interface{}) error {
+	return r.db.Where(where).Find(out).Error
 }
 
 func (r *repo) Close() error {

@@ -2,6 +2,7 @@ package configurablecommand
 
 import (
 	"errors"
+	"sort"
 	"sync"
 	"time"
 
@@ -20,6 +21,51 @@ var (
 	ErrTooManyTasks = errors.New("too many tasks")
 	ErrTaskNotFound = errors.New("task not found")
 )
+
+func LoadPendingTasks(bot gobot.Bot) {
+	// ignore errors
+	store, err := newTaskStore()
+	if err != nil {
+		return
+	}
+	taskEntities, err := store.All()
+	if err != nil {
+		return
+	}
+	for _, e := range taskEntities {
+		task, err := e.Task()
+		if err != nil {
+			continue
+		}
+		status := task.Status()
+		if status == Killed || status == Succeeded || status == Failed {
+			continue
+		}
+		// restart running task
+		if task.Status() == Running {
+			task.startAt = nil
+		}
+		// use current bot
+		task.bot = bot
+		tasks = append(tasks, task)
+	}
+	sort.Slice(tasks, func(i, j int) bool {
+		return tasks[i].ID < tasks[j].ID
+	})
+}
+
+func saveTask(t *Task) {
+	// ignore errors
+	store, err := newTaskStore()
+	if err != nil {
+		return
+	}
+	entity, err := NewTaskEntity(t)
+	if err != nil {
+		return
+	}
+	_ = store.Save(*entity)
+}
 
 func GetTasks() []Task {
 	mutex.RLock()
@@ -52,14 +98,16 @@ func addTask(bot gobot.Bot, msg gobot.Message, cmd Command) error {
 		return ErrTooManyTasks
 	}
 
-	tasks = append(tasks, &Task{
+	task := &Task{
 		ID:    lastTaskID + 1,
 		Msg:   msg,
 		bot:   bot,
 		cmd:   cmd,
 		runAt: time.Now(),
-	})
+	}
 	lastTaskID++
+	tasks = append(tasks, task)
+	saveTask(task)
 	return nil
 }
 
