@@ -2,7 +2,9 @@ package configurablecommand
 
 import (
 	"errors"
+	"log"
 	"sort"
+	"strconv"
 	"sync"
 	"time"
 
@@ -20,6 +22,8 @@ var (
 
 	ErrTooManyTasks = errors.New("too many tasks")
 	ErrTaskNotFound = errors.New("task not found")
+
+	stoppingAll bool
 )
 
 func LoadPendingTasks(bot gobot.Bot) {
@@ -32,13 +36,18 @@ func LoadPendingTasks(bot gobot.Bot) {
 	if err != nil {
 		return
 	}
+	sort.Slice(taskEntities, func(i, j int) bool {
+		return taskEntities[i].ID < taskEntities[j].ID
+	})
+	if len(taskEntities) > 0 {
+		lastTaskID = taskEntities[len(taskEntities)-1].ID
+	}
 	for _, e := range taskEntities {
 		task, err := e.Task()
 		if err != nil {
 			continue
 		}
-		status := task.Status()
-		if status == Killed || status == Succeeded || status == Failed {
+		if !task.Active() {
 			continue
 		}
 		// restart running task
@@ -49,9 +58,6 @@ func LoadPendingTasks(bot gobot.Bot) {
 		task.bot = bot
 		tasks = append(tasks, task)
 	}
-	sort.Slice(tasks, func(i, j int) bool {
-		return tasks[i].ID < tasks[j].ID
-	})
 }
 
 func saveTask(t *Task) {
@@ -117,14 +123,14 @@ func removeTask() *Task {
 	}
 
 	for i, task := range tasks {
-		status := task.Status()
-		if status == Killed || status == Succeeded || status == Failed {
-			var newTasks []*Task
-			newTasks = append(newTasks, tasks[:i]...)
-			newTasks = append(newTasks, tasks[i+1:]...)
-			tasks = newTasks
-			return task
+		if task.Active() {
+			continue
 		}
+		var newTasks []*Task
+		newTasks = append(newTasks, tasks[:i]...)
+		newTasks = append(newTasks, tasks[i+1:]...)
+		tasks = newTasks
+		return task
 	}
 	return nil
 }
@@ -156,6 +162,16 @@ func nextExecutableTask() *Task {
 	return nil
 }
 
+func StopAll() {
+	stoppingAll = true
+	for _, t := range tasks {
+		if t.Status() == Running {
+			t.executor.Stop()
+			log.Print("stopped task #" + strconv.Itoa(t.ID))
+		}
+	}
+}
+
 func init() {
 	// how to stop
 	go func() {
@@ -163,6 +179,9 @@ func init() {
 		defer tick.Stop()
 		for {
 			<-tick.C
+			if stoppingAll {
+				break
+			}
 			t := nextExecutableTask()
 			if t != nil {
 				go t.Start()

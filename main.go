@@ -4,6 +4,8 @@ import (
 	"flag"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"gopkg.in/yaml.v2"
 
@@ -60,6 +62,16 @@ func main() {
 
 	// load pending tasks
 	configurablecommand.LoadPendingTasks(bot)
+
+	// wait signal
+	signCh := make(chan os.Signal)
+	signal.Notify(signCh, os.Interrupt, syscall.SIGTERM)
+	go func() {
+		<-signCh
+		configurablecommand.StopAll()
+		bot.Stop()
+		os.Exit(1)
+	}()
 
 	// start
 	bot.Start()

@@ -3,12 +3,13 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"github.com/li-go/gobot/gobot"
-	"github.com/li-go/gobot/localrepo"
 	"math/rand"
 	"regexp"
 	"strconv"
 	"time"
+
+	"github.com/li-go/gobot/gobot"
+	"github.com/li-go/gobot/localrepo"
 )
 
 var (

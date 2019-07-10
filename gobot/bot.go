@@ -19,6 +19,7 @@ var (
 type Bot interface {
 	RegisterHandler(Handler) error
 	Start()
+	Stop()
 	GetRTM() *slack.RTM
 	GetLogger() *log.Logger
 	SendMessage(string, string)
@@ -36,6 +37,8 @@ type bot struct {
 	users     map[string]string
 
 	handlers []Handler
+
+	stopped bool
 }
 
 func New(token string, logger *log.Logger) (Bot, error) {
@@ -68,45 +71,58 @@ func (bot *bot) RegisterHandler(handler Handler) error {
 	return nil
 }
 
+func (bot *bot) Stop() {
+	bot.stopped = true
+	bot.logger.Print("bot stopped")
+}
+
 func (bot *bot) Start() {
 	go bot.rtm.ManageConnection()
 	bot.logger.Print("start receiving incoming events...")
 	for ev := range bot.rtm.IncomingEvents {
-		if msg, ok := ev.Data.(*slack.MessageEvent); ok {
-			// ignore bot message
-			if msg.SubType == "bot_message" {
-				continue
-			}
-
-			if _, err := bot.LoadChannel(msg.Channel); err != nil {
-				bot.logger.Print(err)
-				continue
-			}
-			if _, err := bot.LoadUser(msg.User); err != nil {
-				bot.logger.Print(err)
-				continue
-			}
-
-			parsedMsg := bot.msgParser.Parse(msg.Text, msg.Channel, msg.User)
-
-			var handled bool
-			for _, handler := range bot.handlers {
-				if handler.NeedsMention && parsedMsg.Type == ListenTo {
-					continue
-				}
-				if !handler.Handleable(bot, parsedMsg) {
-					continue
-				}
-				go bot.handle(handler, parsedMsg)
-				// handle message only once
-				handled = true
-				break
-			}
-
-			if !handled && parsedMsg.Type != ListenTo {
-				bot.SendMessage(ai.Answer(msg.Text), msg.Channel)
-			}
+		if bot.stopped {
+			break
 		}
+
+		if msg, ok := ev.Data.(*slack.MessageEvent); ok {
+			bot.onMessage(msg)
+		}
+	}
+}
+
+func (bot *bot) onMessage(msg *slack.MessageEvent) {
+	// ignore bot message
+	if len(msg.BotID) > 0 {
+		return
+	}
+
+	if _, err := bot.LoadChannel(msg.Channel); err != nil {
+		bot.logger.Print(err)
+		return
+	}
+	if _, err := bot.LoadUser(msg.User); err != nil {
+		bot.logger.Print(err)
+		return
+	}
+
+	parsedMsg := bot.msgParser.Parse(msg.Text, msg.Channel, msg.User)
+
+	var handled bool
+	for _, handler := range bot.handlers {
+		if handler.NeedsMention && parsedMsg.Type == ListenTo {
+			continue
+		}
+		if !handler.Handleable(bot, parsedMsg) {
+			continue
+		}
+		go bot.handle(handler, parsedMsg)
+		// handle message only once
+		handled = true
+		break
+	}
+
+	if !handled && parsedMsg.Type != ListenTo {
+		bot.SendMessage(ai.Answer(msg.Text), msg.Channel)
 	}
 }
 

@@ -56,14 +56,18 @@ func (t *Task) Status() TaskStatus {
 	return Pending
 }
 
+func (t *Task) Active() bool {
+	return t.Status() == Pending || t.Status() == Running
+}
+
 func (t *Task) Start() {
 	now1 := time.Now()
 	t.startAt = &now1
+	saveTask(t)
 
 	err := t.execute()
 
-	if t.Status() == Killed {
-		saveTask(t)
+	if t.executor.IsStopped() {
 		return
 	}
 
@@ -126,7 +130,7 @@ func (t *Task) execute() error {
 	if err != nil {
 		return err
 	}
-	bot.GetLogger().Printf("%s is executing `%s` in %s", user, executor.Command(), channel)
+	bot.GetLogger().Printf("%s is executing `%s` in %s - #%d", user, executor.Command(), channel, t.ID)
 	if err := executor.Start(); err != nil {
 		bot.SendMessage(fmt.Sprintf(errMsgFmt, err.Error()), msg.ChannelID)
 		return err

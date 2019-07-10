@@ -3,9 +3,10 @@ package configurablecommand
 import (
 	"encoding/json"
 	"errors"
+	"time"
+
 	"github.com/li-go/gobot/gobot"
 	"github.com/li-go/gobot/localrepo"
-	"time"
 )
 
 type TaskEntity struct {
