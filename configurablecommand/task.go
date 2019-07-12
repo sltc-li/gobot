@@ -67,7 +67,7 @@ func (t *Task) Start() {
 
 	err := t.execute()
 
-	if t.executor.IsStopped() {
+	if t.Status() == Killed || stoppingAll {
 		return
 	}
 
