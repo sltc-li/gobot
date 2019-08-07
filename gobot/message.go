@@ -16,6 +16,7 @@ const (
 
 var (
 	space = regexp.MustCompile(`[\s　]+`)
+	url   = regexp.MustCompile(`<(https?://[^>]+)>`)
 )
 
 type Message struct {
@@ -30,9 +31,16 @@ type MessageParser struct {
 	replyPrefix string
 }
 
+func simplify(text string) string {
+	text = space.ReplaceAllString(text, " ")
+	for _, m := range url.FindAllStringSubmatch(text, -1) {
+		text = strings.ReplaceAll(text, m[0], m[1])
+	}
+	return strings.Trim(text, " ")
+}
+
 func (parser *MessageParser) Parse(msg, channelID, userID string) Message {
-	msg = space.ReplaceAllString(msg, " ")
-	msg = strings.Trim(msg, " ")
+	msg = simplify(msg)
 
 	if channelID[0] == 'D' {
 		return Message{Type: DirectMessage, Text: msg, ChannelID: channelID, UserID: userID}

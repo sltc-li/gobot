@@ -50,6 +50,12 @@ func TestMessageParser_Parse(t *testing.T) {
 			args:   args{userID: "U123", channelID: "X123", msg: "  　hello  　　 world  　　　  "},
 			want:   Message{Type: ListenTo, Text: "hello world", ChannelID: "X123", UserID: "U123"},
 		},
+		{
+			name:   "simplify message",
+			fields: fields{replyPrefix: "<@PREFIX>"},
+			args:   args{userID: "U123", channelID: "X123", msg: "<http://test.com> <https://example.com/test>"},
+			want:   Message{Type: ListenTo, Text: "http://test.com https://example.com/test", ChannelID: "X123", UserID: "U123"},
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
