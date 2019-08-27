@@ -1,6 +1,8 @@
 gobot
 =====
 
+[![Actions Status](https://github.com/li-go/gobot/workflows/Go/badge.svg)](https://github.com/li-go/gobot/actions)
+
 ### How to install?
 
 ```
