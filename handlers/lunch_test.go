@@ -12,7 +12,7 @@ type mockRepo struct {
 	mock.Mock
 }
 
-func (mockRepo) Migrate(data interface{}) error {
+func (mockRepo) Migrate(data ...interface{}) error {
 	panic("implement me")
 }
 
