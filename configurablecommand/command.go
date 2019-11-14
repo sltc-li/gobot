@@ -127,27 +127,73 @@ func (c Command) isValidParamName(name string) bool {
 	return false
 }
 
+func tokenize(text string) ([]string, error) {
+	var tokens []string
+	var tmp []byte
+	var inQuote bool
+	for i, c := range text {
+		b := byte(c)
+		switch c {
+		case ' ':
+			if i > 0 && text[i-1] == '\\' {
+				tmp = append(tmp, b)
+				continue
+			}
+			if inQuote {
+				tmp = append(tmp, b)
+				continue
+			}
+			if tmp != nil {
+				tokens = append(tokens, string(tmp))
+				tmp = nil
+			}
+		case '"':
+			if i > 0 && text[i-1] == '\\' {
+				tmp = append(tmp, b)
+				continue
+			}
+			if inQuote {
+				tokens = append(tokens, string(tmp))
+				tmp = nil
+				inQuote = false
+				continue
+			}
+			inQuote = true
+		case '\\':
+		default:
+			tmp = append(tmp, b)
+		}
+	}
+	if inQuote {
+		return nil, errors.New("unpaired quote")
+	}
+	if tmp != nil {
+		return append(tokens, string(tmp)), nil
+	}
+	return tokens, nil
+}
+
 type param struct {
 	Name  string
 	Value string
 }
 
 func (c Command) parseParams(text string) ([]param, error) {
-	if len(text) == 0 {
-		return nil, nil
+	tokens, err := tokenize(text)
+	if err != nil {
+		return nil, err
 	}
 
 	var pp []param
-	ss := strings.Split(text, " ")
-	for len(ss) > 0 {
-		s := ss[0]
+	for len(tokens) > 0 {
+		s := tokens[0]
 		var found bool
 		for _, name := range c.ParamNames {
 			if s == "--"+name {
 				value := ""
-				if len(ss) > 1 {
-					value = ss[1]
-					ss = ss[1:]
+				if len(tokens) > 1 {
+					value = tokens[1]
+					tokens = tokens[1:]
 				}
 				pp = append(pp, param{Name: name, Value: value})
 				found = true
@@ -162,7 +208,7 @@ func (c Command) parseParams(text string) ([]param, error) {
 		if !found {
 			return nil, fmt.Errorf("invalid param: %s", s)
 		}
-		ss = ss[1:]
+		tokens = tokens[1:]
 	}
 	return pp, nil
 }
