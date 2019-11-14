@@ -6,9 +6,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/li-go/gobot/ai"
-
 	"github.com/nlopes/slack"
+
+	"github.com/li-go/gobot/ai"
 )
 
 var (

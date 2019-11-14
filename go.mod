@@ -1,7 +1,5 @@
 module github.com/li-go/gobot
 
-go 1.12
-
 require (
 	cloud.google.com/go v0.41.0 // indirect
 	github.com/gorilla/websocket v1.4.0 // indirect
@@ -15,3 +13,5 @@ require (
 	github.com/stretchr/testify v1.3.0
 	gopkg.in/yaml.v2 v2.2.2
 )
+
+go 1.13

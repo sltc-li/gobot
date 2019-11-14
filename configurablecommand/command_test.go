@@ -69,6 +69,14 @@ func TestCommand_parseParams(t *testing.T) {
 			want:    []param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd"}},
 			wantErr: false,
 		},
+		// TODO: parse quoted value
+		//{
+		//	name:    "quoted value",
+		//	fields:  fields{ParamNames: []string{"aaa", "ccc"}},
+		//	args:    args{text: `--aaa "bbb" --ccc "ddd eee"`},
+		//	want:    []param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd eee"}},
+		//	wantErr: false,
+		//},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
