@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/li-go/gobot/cmdargparser"
 	"github.com/li-go/gobot/gobot"
 )
 
@@ -127,88 +128,29 @@ func (c Command) isValidParamName(name string) bool {
 	return false
 }
 
-func tokenize(text string) ([]string, error) {
-	var tokens []string
-	var tmp []byte
-	var inQuote bool
-	for i, c := range text {
-		b := byte(c)
-		switch c {
-		case ' ':
-			if i > 0 && text[i-1] == '\\' {
-				tmp = append(tmp, b)
-				continue
-			}
-			if inQuote {
-				tmp = append(tmp, b)
-				continue
-			}
-			if tmp != nil {
-				tokens = append(tokens, string(tmp))
-				tmp = nil
-			}
-		case '"':
-			if i > 0 && text[i-1] == '\\' {
-				tmp = append(tmp, b)
-				continue
-			}
-			if inQuote {
-				tokens = append(tokens, string(tmp))
-				tmp = nil
-				inQuote = false
-				continue
-			}
-			inQuote = true
-		case '\\':
-		default:
-			tmp = append(tmp, b)
-		}
-	}
-	if inQuote {
-		return nil, errors.New("unpaired quote")
-	}
-	if tmp != nil {
-		return append(tokens, string(tmp)), nil
-	}
-	return tokens, nil
-}
-
 type param struct {
 	Name  string
 	Value string
 }
 
 func (c Command) parseParams(text string) ([]param, error) {
-	tokens, err := tokenize(text)
+	params, err := cmdargparser.Parse(text)
 	if err != nil {
 		return nil, err
 	}
-
 	var pp []param
-	for len(tokens) > 0 {
-		s := tokens[0]
+	for _, p := range params {
 		var found bool
 		for _, name := range c.ParamNames {
-			if s == "--"+name {
-				value := ""
-				if len(tokens) > 1 {
-					value = tokens[1]
-					tokens = tokens[1:]
-				}
-				pp = append(pp, param{Name: name, Value: value})
-				found = true
-				break
-			}
-			if strings.HasPrefix(s, "--"+name+"=") {
-				pp = append(pp, param{Name: name, Value: s[len(name)+3:]})
+			if p.Name == name {
 				found = true
 				break
 			}
 		}
 		if !found {
-			return nil, fmt.Errorf("invalid param: %s", s)
+			return nil, errors.New("unknown param name")
 		}
-		tokens = tokens[1:]
+		pp = append(pp, param{Name: p.Name, Value: p.Value})
 	}
 	return pp, nil
 }
