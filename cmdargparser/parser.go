@@ -51,18 +51,17 @@ func Parse(text string) ([]Param, error) {
 
 func tokenize(text string) ([]string, error) {
 	var tokens []string
-	var tmp []byte
+	var tmp []rune
 	var inQuote bool
 	for i, c := range text {
-		b := byte(c)
 		switch c {
 		case ' ':
 			if i > 0 && text[i-1] == '\\' {
-				tmp = append(tmp, b)
+				tmp = append(tmp, c)
 				continue
 			}
 			if inQuote {
-				tmp = append(tmp, b)
+				tmp = append(tmp, c)
 				continue
 			}
 			if tmp != nil {
@@ -71,7 +70,7 @@ func tokenize(text string) ([]string, error) {
 			}
 		case '"':
 			if i > 0 && text[i-1] == '\\' {
-				tmp = append(tmp, b)
+				tmp = append(tmp, c)
 				continue
 			}
 			if inQuote {
@@ -83,7 +82,7 @@ func tokenize(text string) ([]string, error) {
 			inQuote = true
 		case '\\':
 		default:
-			tmp = append(tmp, b)
+			tmp = append(tmp, c)
 		}
 	}
 	if inQuote {

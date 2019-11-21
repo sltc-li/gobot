@@ -54,6 +54,12 @@ func TestParse(t *testing.T) {
 			want:    []Param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd eee"}},
 			wantErr: false,
 		},
+		{
+			name:    "quoted value - multi-byte characters",
+			arg:     `--aaa "bbb" --ccc "ddd eee" --fff "日本語"`,
+			want:    []Param{{Name: "aaa", Value: "bbb"}, {Name: "ccc", Value: "ddd eee"}, {Name: "fff", Value: "日本語"}},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
